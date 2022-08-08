@@ -47,17 +47,10 @@ class Venue(db.Model):
     website = db.Column(db.String(120), nullable=True)
     seeking_talent = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String(120))
-    #  "past_shows": [
-    #           {
-    #               "venue_id": 1,
-    #               "venue_name": "The Musical Hop",
-    #               "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-    #               "start_time": "2019-05-21T21:30:00.000Z",
-    #           }
-    #       ],
-    # "upcoming_shows": [],
-    # past_shows_count = db.Column(db.Integer)
-    # upcoming_shows_count = db.Column(db.Integer)
+    shows = db.relationship("Show", backref="venue", lazy=True)
+
+    def __repr__(self):
+        return f"<Venue {self.id}, name:{self.name}, city:{self.city}, state:{self.state}, address:{self.address}, image_link:{self.image_link}, facebook_link:{self.facebook_link}, genres:{self.genres}, website:{self.website}, seeking_talent:{self.seeking_talent}, seeking_description:{self.seeking_description}, shows:{self.shows}>"
 
 
 class Artist(db.Model):
@@ -76,17 +69,10 @@ class Artist(db.Model):
     website = db.Column(db.String(120), nullable=True)
     seeking_venue = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String(120), nullable=True)
-    #  "past_shows": [
-    #           {
-    #               "venue_id": 1,
-    #               "venue_name": "The Musical Hop",
-    #               "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-    #               "start_time": "2019-05-21T21:30:00.000Z",
-    #           }
-    #       ],
-    # "upcoming_shows": [],
-    # past_shows_count = db.Column(db.Integer)
-    # upcoming_shows_count = db.Column(db.Integer)
+    shows = db.relationship("Show", backref="artist", lazy=True)
+
+    def __repr__(self):
+        return f"<Venue {self.id}, name:{self.name}, city:{self.city}, state:{self.state}, image_link:{self.image_link}, facebook_link:{self.facebook_link}, genres:{self.genres}, website:{self.website}, seeking_talent:{self.seeking_venue}, seeking_description:{self.seeking_description}, shows:{self.shows}>"
 
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
@@ -100,6 +86,9 @@ class Show(db.Model):
     start_time = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow
     )  # Start time required field
+
+    def __repr__(self):
+        return f"<Todo {self.id}, venue_id:{self.venue_id}, artist_id:{self.artist_id}, start_time:{self.start_time}>"
 
 
 # ----------------------------------------------------------------------------#
