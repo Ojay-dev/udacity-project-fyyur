@@ -37,12 +37,27 @@ class Venue(db.Model):
     name = db.Column(db.String)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
+    address = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(120), nullable=True)
     image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
+    facebook_link = db.Column(db.String(120), nullable=True)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    genres = db.Column(db.PickleType)
+    website = db.Column(db.String(120), nullable=True)
+    seeking_talent = db.Column(db.Boolean, default=False)
+    seeking_description = db.Column(db.String(120))
+    #  "past_shows": [
+    #           {
+    #               "venue_id": 1,
+    #               "venue_name": "The Musical Hop",
+    #               "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
+    #               "start_time": "2019-05-21T21:30:00.000Z",
+    #           }
+    #       ],
+    # "upcoming_shows": [],
+    # past_shows_count = db.Column(db.Integer)
+    # upcoming_shows_count = db.Column(db.Integer)
 
 
 class Artist(db.Model):
@@ -70,8 +85,8 @@ class Artist(db.Model):
     #           }
     #       ],
     # "upcoming_shows": [],
-    past_shows_count = db.Column(db.Integer)
-    upcoming_shows_count = db.Column(db.Integer)
+    # past_shows_count = db.Column(db.Integer)
+    # upcoming_shows_count = db.Column(db.Integer)
 
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
