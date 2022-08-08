@@ -90,6 +90,17 @@ class Artist(db.Model):
 
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+class Show(db.Model):
+    __tablename__ = "Show"
+
+    id = db.Column(db.Integer, primary_key=True)
+    # name = db.Column(db.String) #TODO: implement later (not a requirement now)
+    venue_id = db.Column(db.Integer, db.ForeignKey("Venue.id"), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey("Artist.id"), nullable=False)
+    start_time = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow
+    )  # Start time required field
+
 
 # ----------------------------------------------------------------------------#
 # Filters.
