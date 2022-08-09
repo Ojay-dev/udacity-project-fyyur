@@ -14,6 +14,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+from operator import itemgetter  # for sorting lists of tuples
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -46,10 +47,10 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120), nullable=True)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
-    genres = db.Column(db.PickleType)
+    genres = db.Column(db.PickleType, nullable=False)
     website = db.Column(db.String(120), nullable=True)
     seeking_talent = db.Column(db.Boolean, default=False, nullable=False)
-    seeking_description = db.Column(db.String(120), nullable=False)
+    seeking_description = db.Column(db.String(120), nullable=True)
     shows = db.relationship("Show", backref="venue", lazy=True)
 
     def __repr__(self):
@@ -127,36 +128,51 @@ def index():
 @app.route("/venues")
 def venues():
     # TODO: replace with real venues data.
-    #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-    data = [
-        {
-            "city": "San Francisco",
-            "state": "CA",
-            "venues": [
-                {
-                    "id": 1,
-                    "name": "The Musical Hop",
-                    "num_upcoming_shows": 0,
-                },
-                {
-                    "id": 3,
-                    "name": "Park Square Live Music & Coffee",
-                    "num_upcoming_shows": 1,
-                },
-            ],
-        },
-        {
-            "city": "New York",
-            "state": "NY",
-            "venues": [
-                {
-                    "id": 2,
-                    "name": "The Dueling Pianos Bar",
-                    "num_upcoming_shows": 0,
-                }
-            ],
-        },
-    ]
+    #  num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
+
+    venues = Venue.query.all()
+
+    # A list of dictionaries, with city, state, and venues serving as the dictionary keys
+    data = []
+
+    # Make a set of all the cities and states that are unique.
+    cities_states = set()
+    for venue in venues:
+        cities_states.add((venue.city, venue.state))  # Add tuple
+
+    # Change cities_states set into an ordered list
+    cities_states = list(cities_states)
+
+    # Sorts on second column first (state), then by city.
+    cities_states.sort(key=itemgetter(1, 0))
+
+    now = datetime.utcnow
+
+    # to add city/state locations to the data dictionary, loop through the distinct values.
+    for loc in cities_states:
+        # For this location, see if there are any venues there, and add if so
+        venues_list = []
+        for venue in venues:
+            if (venue.city == loc[0]) and (venue.state == loc[1]):
+
+                # If we've got a venue to add, check how many upcoming shows it has
+                venue_shows = Show.query.filter_by(venue_id=venue.id).all()
+                num_upcoming = 0
+                for show in venue_shows:
+                    if show.start_time > now:
+                        num_upcoming += 1
+
+                venues_list.append(
+                    {
+                        "id": venue.id,
+                        "name": venue.name,
+                        "num_upcoming_shows": num_upcoming,
+                    }
+                )
+
+        # After all venues are added to the list for a given location, add it to the data dictionary
+        data.append({"city": loc[0], "state": loc[1], "venues": venues_list})
+
     return render_template("pages/venues.html", areas=data)
 
 
@@ -229,7 +245,7 @@ def show_venue(venue_id):
         "upcoming_shows_count": 0,
     }
     data3 = {
-        "id": 3,
+        "id": 5,
         "name": "Park Square Live Music & Coffee",
         "genres": ["Rock n Roll", "Jazz", "Classical", "Folk"],
         "address": "34 Whiskey Moore Ave",
