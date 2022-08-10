@@ -355,9 +355,9 @@ def show_artist(artist_id):
             upcoming_shows_count += 1
             upcoming_shows.append(
                 {
-                    "artist_id": show.artist_id,
-                    "artist_name": show.artist.name,
-                    "artist_image_link": show.artist.image_link,
+                    "venue_id": show.venue_id,
+                    "venue_name": show.venue.name,
+                    "venue_image_link": show.venue.image_link,
                     "start_time": format_datetime(str(show.start_time)),
                 }
             )
@@ -366,18 +366,16 @@ def show_artist(artist_id):
             past_shows_count += 1
             past_shows.append(
                 {
-                    "artist_id": show.artist_id,
-                    "artist_name": show.artist.name,
-                    "artist_image_link": show.artist.image_link,
+                    "venue_id": show.venue_id,
+                    "venue_name": show.venue.name,
+                    "venue_image_link": show.venue.image_link,
                     "start_time": format_datetime(str(show.start_time)),
                 }
             )
-
     data = {
         "id": artist_id,
         "name": artist.name,
         "genres": artist.genres,
-        "address": artist.address,
         "city": artist.city,
         "state": artist.state,
         "phone": artist.phone,
@@ -391,6 +389,7 @@ def show_artist(artist_id):
         "past_shows_count": past_shows_count,
         "upcoming_shows_count": upcoming_shows_count,
     }
+
     return render_template("pages/show_artist.html", artist=data)
 
 
