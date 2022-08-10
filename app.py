@@ -3,10 +3,20 @@
 # ----------------------------------------------------------------------------#
 
 import json
+from os import abort
 import dateutil.parser
 import babel
 from traitlets import default
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    request,
+    Response,
+    flash,
+    redirect,
+    url_for,
+    abort,
+)
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -205,9 +215,9 @@ def show_venue(venue_id):
     venue = Venue.query.get(venue_id)
 
     # The user must have manually entered a broken link into the browser.
-    # Redirect home
+    # Show 404 page
     if not venue:
-        return redirect(url_for("index"))
+        return abort(404)
 
     now = datetime.now()
     past_shows = []
@@ -330,9 +340,9 @@ def show_artist(artist_id):
     artist = Artist.query.get(artist_id)
 
     # The user must have manually entered a broken link into the browser.
-    # Redirect home
+    # Show 404 page
     if not artist:
-        redirect(url_for("index"))
+        abort(404)
 
     now = datetime.now()
     past_shows = []
