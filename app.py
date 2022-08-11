@@ -402,20 +402,10 @@ def show_artist(artist_id):
 #  ----------------------------------------------------------------
 @app.route("/artists/<int:artist_id>/edit", methods=["GET"])
 def edit_artist(artist_id):
-    form = ArtistForm()
-    artist = {
-        "id": 4,
-        "name": "Guns N Petals",
-        "genres": ["Rock n Roll"],
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "326-123-5000",
-        "website": "https://www.gunsnpetalsband.com",
-        "facebook_link": "https://www.facebook.com/GunsNPetals",
-        "seeking_venue": True,
-        "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-        "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    }
+    artist = Artist.query.get(artist_id)
+    # artist.phone = artist.phone[:3] + "-" + artist.phone[3:6] + "-" + artist.phone[6:]
+    form = ArtistForm(obj=artist)
+
     # TODO: populate form with fields from artist with ID <artist_id>
     return render_template("forms/edit_artist.html", form=form, artist=artist)
 
@@ -424,8 +414,55 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
+    form = ArtistForm()
+    error_inserting_db = False
 
-    return redirect(url_for("show_artist", artist_id=artist_id))
+    name = form.name.data.strip()
+    genres = form.genres.data
+    city = form.city.data.strip()
+    state = form.state.data.strip()
+    phone = form.phone.data.strip()
+    phone = re.sub("\D", "", phone)
+    website = form.website_link.data.strip()
+    facebook_link = form.facebook_link.data.strip()
+    seeking_venue = True if form.seeking_venue.data == "y" else False
+    seeking_description = form.seeking_description.data.strip()
+    image_link = form.image_link.data.strip()
+
+    if not form.validate():
+        flash(form.errors)
+        return redirect(url_for("edit_artist_submission", artist_id=artist_id))
+    else:
+        error_inserting_db = False
+
+    try:
+        artist = Artist.query.get(artist_id)
+
+        artist.name = name
+        artist.genres = genres
+        artist.city = city
+        artist.state = state
+        artist.phone = phone
+        artist.website = website
+        artist.facebook_link = facebook_link
+        artist.seeking_venue = seeking_venue
+        artist.seeking_description = seeking_description
+        artist.image_link = image_link
+
+        db.session.commit()
+
+    except Exception as e:
+        error_inserting_db = True
+        print(f'Exception "{e}" in edit_artist_submission()')
+        db.session.rollback()
+
+    if not error_inserting_db:
+        # on successful db insert, flash success
+        flash("Artist " + name + " was successfully updated!!")
+        return redirect(url_for("show_artist", artist_id=artist_id))
+    else:
+        flash("An error occurred. Artist " + name + " could not be updated.")
+        return redirect(url_for("show_artist", artist_id=artist_id))
 
 
 @app.route("/venues/<int:venue_id>/edit", methods=["GET"])
