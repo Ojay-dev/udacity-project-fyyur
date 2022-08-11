@@ -299,7 +299,7 @@ def create_venue_submission():
     address = form.address.data.strip()
     website = form.website_link.data.strip()
     facebook_link = form.facebook_link.data.strip()
-    seeking_talent = True if form.seeking_talent.data == "y" else False
+    seeking_talent = form.seeking_talent.data
     seeking_description = form.seeking_description.data.strip()
     image_link = form.image_link.data.strip()
 
@@ -482,7 +482,7 @@ def edit_artist_submission(artist_id):
     phone = re.sub("\D", "", phone)
     website = form.website_link.data.strip()
     facebook_link = form.facebook_link.data.strip()
-    seeking_venue = True if form.seeking_venue.data == "y" else False
+    seeking_venue = form.seeking_venue.data
     seeking_description = form.seeking_description.data.strip()
     image_link = form.image_link.data.strip()
 
@@ -524,21 +524,10 @@ def edit_artist_submission(artist_id):
 
 @app.route("/venues/<int:venue_id>/edit", methods=["GET"])
 def edit_venue(venue_id):
-    form = VenueForm()
-    venue = {
-        "id": 1,
-        "name": "The Musical Hop",
-        "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-        "address": "1015 Folsom Street",
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "123-123-1234",
-        "website": "https://www.themusicalhop.com",
-        "facebook_link": "https://www.facebook.com/TheMusicalHop",
-        "seeking_talent": True,
-        "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-        "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-    }
+    venue = Venue.query.get(venue_id)
+    form = VenueForm(obj=venue)
+
+    print(form.seeking_talent.data)
     # TODO: populate form with values from venue with ID <venue_id>
     return render_template("forms/edit_venue.html", form=form, venue=venue)
 
@@ -547,7 +536,58 @@ def edit_venue(venue_id):
 def edit_venue_submission(venue_id):
     # TODO: take values from the form submitted, and update existing
     # venue record with ID <venue_id> using the new attributes
-    return redirect(url_for("show_venue", venue_id=venue_id))
+    form = VenueForm()
+    error_in_updating = False
+
+    name = form.name.data.strip()
+    genres = form.genres.data
+    city = form.city.data.strip()
+    state = form.state.data.strip()
+    phone = form.phone.data.strip()
+    phone = re.sub("\D", "", phone)
+    address = form.address.data.strip()
+    website = form.website_link.data.strip()
+    facebook_link = form.facebook_link.data.strip()
+    seeking_talent = form.seeking_talent.data
+    seeking_description = form.seeking_description.data.strip()
+    image_link = form.image_link.data.strip()
+
+    if not form.validate():
+        flash(form.errors)
+        return redirect(url_for("edit_venue_submission", venue_id=venue_id))
+    else:
+        error_in_updating = False
+
+    try:
+        venue = Venue.query.get(venue_id)
+
+        venue.name = name
+        venue.genres = genres
+        venue.city = city
+        venue.state = state
+        venue.phone = phone
+        venue.phone = phone
+        venue.address = address
+        venue.website = website
+        venue.facebook_link = facebook_link
+        venue.seeking_talent = seeking_talent
+        venue.seeking_description = seeking_description
+        venue.image_link = image_link
+
+        db.session.commit()
+
+    except Exception as e:
+        error_in_updating = True
+        print(f'Exception "{e}" in edit_venue_submission()')
+        db.session.rollback()
+
+    if not error_in_updating:
+        # on successful db insert, flash success
+        flash("Venue " + name + " was successfully updated!!")
+        return redirect(url_for("show_venue", venue_id=venue_id))
+    else:
+        flash("An error occurred. Venue " + name + " could not be updated.")
+        return redirect(url_for("show_venue", venue_id=venue_id))
 
 
 #  Create Artist
@@ -578,7 +618,7 @@ def create_artist_submission():
     phone = re.sub("\D", "", phone)
     website = form.website_link.data.strip()
     facebook_link = form.facebook_link.data.strip()
-    seeking_venue = True if form.seeking_venue.data == "y" else False
+    seeking_venue = form.seeking_venue.data
     seeking_description = form.seeking_description.data.strip()
     image_link = form.image_link.data.strip()
 
