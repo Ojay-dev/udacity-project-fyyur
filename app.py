@@ -198,15 +198,7 @@ def search_venues():
     search_term = request.form.get("search_term", "").strip()
     venues = Venue.query.filter(Venue.name.ilike("%" + search_term + "%")).all()
 
-    data = []
-
-    for venue in venues:
-        data.append(
-            {
-                "id": venue.id,
-                "name": venue.name,
-            }
-        )
+    data = [{"id": venue.id, "name": venue.name} for venue in venues]
 
     response = {"count": len(venues), "data": data}
 
@@ -400,17 +392,16 @@ def search_artists():
     search_term = request.form.get("search_term", "").strip()
     artists = Artist.query.filter(Artist.name.ilike("%" + search_term + "%")).all()
 
-    data = []
-
-    for artist in artists:
-        data.append(
-            {
-                "id": artist.id,
-                "name": artist.name,
-            }
-        )
+    data = [
+        {
+            "id": artist.id,
+            "name": artist.name,
+        }
+        for artist in artists
+    ]
 
     response = {"count": len(artists), "data": data}
+
     return render_template(
         "pages/search_artists.html",
         results=response,
