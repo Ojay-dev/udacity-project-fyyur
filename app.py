@@ -4,6 +4,7 @@
 
 import json
 from os import abort
+from unicodedata import name
 import dateutil.parser
 import babel
 from traitlets import default
@@ -27,6 +28,7 @@ from forms import *
 from flask_migrate import Migrate
 from operator import itemgetter  # for sorting lists of tuples
 import re
+from crypt import methods
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -168,7 +170,6 @@ def venues():
         for venue in venues:
             if (venue.city == loc[0]) and (venue.state == loc[1]):
 
-                # If we've got a venue to add, check how many upcoming shows it has
                 venue_shows = Show.query.filter_by(venue_id=venue.id).all()
                 num_upcoming = 0
                 for show in venue_shows:
@@ -194,20 +195,36 @@ def search_venues():
     # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-    response = {
-        "count": 1,
-        "data": [
+    search_term = request.form.get("search_term", "").strip()
+    venues = Venue.query.filter(Venue.name.ilike("%" + search_term + "%")).all()
+    now = datetime.now()
+
+    data = []
+
+    for venue in venues:
+        data.append(
             {
-                "id": 2,
-                "name": "The Dueling Pianos Bar",
-                "num_upcoming_shows": 0,
+                "id": venue.id,
+                "name": venue.name,
             }
-        ],
-    }
+        )
+
+    response = {"count": len(venues), "data": data}
+
+    # response = {
+    #     "count": 1,
+    #     "data": [
+    #         {
+    #             "id": 2,
+    #             "name": "The Dueling Pianos Bar",
+    #             "num_upcoming_shows": 0,
+    #         }
+    #     ],
+    # }
     return render_template(
         "pages/search_venues.html",
         results=response,
-        search_term=request.form.get("search_term", ""),
+        search_term=search_term,
     )
 
 
@@ -352,13 +369,26 @@ def create_venue_submission():
         abort(500)
 
 
-@app.route("/venues/<venue_id>", methods=["DELETE"])
+@app.route("/venues/<int:venue_id>", methods=["DELETE"])
 def delete_venue(venue_id):
+    print("Delete requested on id: " + venue_id)
     # TODO: Complete this endpoint for taking a venue_id, and using
     # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
 
     # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
     # clicking that button delete it from the db then redirect the user to the homepage
+
+    # try:
+    #     venue = Venue.query.get(venue_id)
+    #     Venue.query.filter_by(id=venue_id).delete()
+    #     db.session.commit()
+    # except Exception as e:
+    #     print(f'Exception "{e}" in delete_venue()')
+    #     db.session.rollback()
+    # finally:
+    #     db.session.close()
+    #     flash("Venue " + venue.name + " was successfully removed!")
+    #     return redirect(url_for("/venues"))
     return None
 
 
