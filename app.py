@@ -287,12 +287,69 @@ def create_venue_submission():
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
 
-    # on successful db insert, flash success
-    flash("Venue " + request.form["name"] + " was successfully listed!")
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-    return render_template("pages/home.html")
+    form = VenueForm()
+    error_in_update = False
+
+    name = form.name.data.strip()
+    genres = form.genres.data
+    city = form.city.data.strip()
+    state = form.state.data.strip()
+    phone = form.phone.data.strip()
+    phone = re.sub("\D", "", phone)
+    address = form.address.data.strip()
+    website = form.website_link.data.strip()
+    facebook_link = form.facebook_link.data.strip()
+    seeking_talent = True if form.seeking_talent.data == "y" else False
+    seeking_description = form.seeking_description.data.strip()
+    image_link = form.image_link.data.strip()
+
+    if not form.validate():
+        flash(form.errors)
+        return redirect(url_for("create_venue_submission"))
+    else:
+        error_in_update = False
+
+    try:
+        new_venue = Venue(
+            name=name,
+            genres=genres,
+            city=city,
+            state=state,
+            phone=phone,
+            address=address,
+            website=website,
+            facebook_link=facebook_link,
+            seeking_talent=seeking_talent,
+            seeking_description=seeking_description,
+            image_link=image_link,
+        )
+
+        db.session.add(new_venue)
+        db.session.commit()
+
+        # "website": "https://www.gunsnpetalsband.com",
+        # "facebook_link": "https://www.facebook.com/GunsNPetals",
+        # "seeking_venue": True,
+        # "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
+        # "image_link": "https:/
+    except Exception as e:
+        error_in_update = True
+        print(f'Exception "{e}" in create_venue_submission()')
+        db.session.rollback()
+    finally:
+        db.session.close()
+
+    if not error_in_update:
+        # on successful db insert, flash success
+        # on successful db insert, flash success
+        flash("Venue " + request.form["name"] + " was successfully listed!")
+        return redirect(url_for("index"))
+    else:
+        # TODO: on unsuccessful db insert, flash an error instead.
+        # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+        flash("An error occurred. Venue " + name + " could not be listed.")
+        print("Error in create_venue_submission()")
+        abort(500)
 
 
 @app.route("/venues/<venue_id>", methods=["DELETE"])
