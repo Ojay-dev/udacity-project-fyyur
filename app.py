@@ -22,15 +22,18 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
+from flask_wtf.csrf import CSRFProtect
 from forms import *
 from flask_migrate import Migrate
 from operator import itemgetter  # for sorting lists of tuples
+import re
 
 # ----------------------------------------------------------------------------#
 # App Config.
 # ----------------------------------------------------------------------------#
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 moment = Moment(app)
 app.config.from_object("config")
 db = SQLAlchemy(app)
@@ -307,7 +310,9 @@ def delete_venue(venue_id):
 @app.route("/artists")
 def artists():
     # TODO: replace with real data returned from querying the database
-    return render_template("pages/artists.html", artists=Artist.query.all())
+    return render_template(
+        "pages/artists.html", artists=Artist.query.order_by("id").all()
+    )
 
 
 @app.route("/artists/search", methods=["POST"])
@@ -378,7 +383,7 @@ def show_artist(artist_id):
         "genres": artist.genres,
         "city": artist.city,
         "state": artist.state,
-        "phone": artist.phone,
+        "phone": (artist.phone[:3] + "-" + artist.phone[3:6] + "-" + artist.phone[6:]),
         "website": artist.website,
         "facebook_link": artist.facebook_link,
         "seeking_venue": artist.seeking_venue,
@@ -467,11 +472,67 @@ def create_artist_submission():
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
 
-    # on successful db insert, flash success
-    flash("Artist " + request.form["name"] + " was successfully listed!")
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-    return render_template("pages/home.html")
+    form = ArtistForm()
+
+    error = False
+    body = {}
+
+    name = form.name.data.strip()
+    genres = form.genres.data
+    city = form.city.data.strip()
+    state = form.state.data.strip()
+    phone = form.phone.data.strip()
+    phone = re.sub("\D", "", phone)
+    website = form.website_link.data.strip()
+    facebook_link = form.facebook_link.data.strip()
+    seeking_venue = True if form.seeking_venue.data == "y" else False
+    seeking_description = form.seeking_description.data.strip()
+    image_link = form.image_link.data.strip()
+
+    if not form.validate():
+        flash(form.errors)
+        return redirect(url_for("create_artist_submission"))
+    else:
+        error = False
+
+    try:
+        new_artist = Artist(
+            name=name,
+            genres=genres,
+            city=city,
+            state=state,
+            phone=phone,
+            website=website,
+            facebook_link=facebook_link,
+            seeking_venue=seeking_venue,
+            seeking_description=seeking_description,
+            image_link=image_link,
+        )
+
+        db.session.add(new_artist)
+        db.session.commit()
+
+        # "website": "https://www.gunsnpetalsband.com",
+        # "facebook_link": "https://www.facebook.com/GunsNPetals",
+        # "seeking_venue": True,
+        # "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
+        # "image_link": "https:/
+    except Exception as e:
+        error = True
+        print(f'Exception "{e}" in create_artist_submission()')
+        db.session.rollback()
+    finally:
+        db.session.close()
+
+    if not error:
+        # on successful db insert, flash success
+        flash("Artist " + request.form["name"] + " was successfully listed!")
+        return redirect(url_for("index"))
+    else:
+        # TODO: on unsuccessful db insert, flash an error instead.
+        flash("An error occurred. Artist " + name + " could not be listed.")
+        print("Error in create_artist_submission()")
+        abort(500)
 
 
 #  Shows
@@ -482,6 +543,12 @@ def create_artist_submission():
 def shows():
     # displays list of shows at /shows
     # TODO: replace with real venues data.
+    shows = Artist.query.order_by("id").all()
+
+    for show in shows:
+        print("the show: ", show)
+
+    temp_data = []
     data = [
         {
             "venue_id": 1,
@@ -524,6 +591,7 @@ def shows():
             "start_time": "2035-04-15T20:00:00.000Z",
         },
     ]
+
     return render_template("pages/shows.html", shows=data)
 
 
