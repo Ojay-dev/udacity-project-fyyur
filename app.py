@@ -5,8 +5,6 @@
 import json
 from os import abort
 from unicodedata import name
-import dateutil.parser
-import babel
 from traitlets import default
 from flask import (
     Flask,
@@ -29,6 +27,7 @@ from operator import itemgetter  # for sorting lists of tuples
 import re
 from crypt import methods
 from models import Venue, Artist, Show
+from utils import format_datetime, format_artist_venue
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -45,15 +44,6 @@ db = SQLAlchemy(app)
 # ----------------------------------------------------------------------------#
 # Filters.
 # ----------------------------------------------------------------------------#
-
-
-def format_datetime(value, format="medium"):
-    date = dateutil.parser.parse(value)
-    if format == "full":
-        format = "EEEE MMMM, d, y 'at' h:mma"
-    elif format == "medium":
-        format = "EE MM, dd, y h:mma"
-    return babel.dates.format_datetime(date, format, locale="en")
 
 
 app.jinja_env.filters["datetime"] = format_datetime
@@ -152,53 +142,22 @@ def show_venue(venue_id):
     if not venue:
         return abort(404)
 
-    now = datetime.now()
-    past_shows = []
-    upcoming_shows = []
-    past_shows_count = 0
-    upcoming_shows_count = 0
+    past_shows = (
+        db.session.query(Show)
+        .join(Venue)
+        .filter(Show.venue_id == venue_id)
+        .filter(Show.start_time < datetime.now())
+        .all()
+    )
+    upcoming_shows = (
+        db.session.query(Show)
+        .join(Venue)
+        .filter(Show.venue_id == venue_id)
+        .filter(Show.start_time > datetime.now())
+        .all()
+    )
 
-    for show in venue.shows:
-        if show.start_time > now:
-            upcoming_shows_count += 1
-            upcoming_shows.append(
-                {
-                    "artist_id": show.artist_id,
-                    "artist_name": show.artist.name,
-                    "artist_image_link": show.artist.image_link,
-                    "start_time": format_datetime(str(show.start_time)),
-                }
-            )
-
-        if show.start_time < now:
-            past_shows_count += 1
-            past_shows.append(
-                {
-                    "artist_id": show.artist_id,
-                    "artist_name": show.artist.name,
-                    "artist_image_link": show.artist.image_link,
-                    "start_time": format_datetime(str(show.start_time)),
-                }
-            )
-
-    data = {
-        "id": venue_id,
-        "name": venue.name,
-        "genres": venue.genres,
-        "address": venue.address,
-        "city": venue.city,
-        "state": venue.state,
-        "phone": venue.phone,
-        "website": venue.website,
-        "facebook_link": venue.facebook_link,
-        "seeking_talent": venue.seeking_talent,
-        "seeking_description": venue.seeking_description,
-        "image_link": venue.image_link,
-        "past_shows": past_shows,
-        "upcoming_shows": upcoming_shows,
-        "past_shows_count": past_shows_count,
-        "upcoming_shows_count": upcoming_shows_count,
-    }
+    data = format_artist_venue(venue, past_shows, upcoming_shows)
     return render_template("pages/show_venue.html", venue=data)
 
 
@@ -353,7 +312,7 @@ def show_artist(artist_id):
     if not artist:
         abort(404)
 
-    temp_var = (
+    past_shows = (
         db.session.query(Show)
         .join(Venue)
         .filter(Show.artist_id == artist_id)
@@ -361,54 +320,15 @@ def show_artist(artist_id):
         .all()
     )
 
-    print("temp_var:", temp_var)
+    upcoming_shows = (
+        db.session.query(Show)
+        .join(Venue)
+        .filter(Show.artist_id == artist_id)
+        .filter(Show.start_time > datetime.now())
+        .all()
+    )
 
-    now = datetime.now()
-    past_shows = []
-    upcoming_shows = []
-    past_shows_count = 0
-    upcoming_shows_count = 0
-
-    for show in artist.shows:
-        if show.start_time > now:
-            upcoming_shows_count += 1
-            upcoming_shows.append(
-                {
-                    "venue_id": show.venue_id,
-                    "venue_name": show.venue.name,
-                    "venue_image_link": show.venue.image_link,
-                    "start_time": format_datetime(str(show.start_time)),
-                }
-            )
-
-        if show.start_time < now:
-            past_shows_count += 1
-            past_shows.append(
-                {
-                    "venue_id": show.venue_id,
-                    "venue_name": show.venue.name,
-                    "venue_image_link": show.venue.image_link,
-                    "start_time": format_datetime(str(show.start_time)),
-                }
-            )
-
-    data = {
-        "id": artist_id,
-        "name": artist.name,
-        "genres": artist.genres,
-        "city": artist.city,
-        "state": artist.state,
-        "phone": (artist.phone[:3] + "-" + artist.phone[3:6] + "-" + artist.phone[6:]),
-        "website": artist.website,
-        "facebook_link": artist.facebook_link,
-        "seeking_venue": artist.seeking_venue,
-        "seeking_description": artist.seeking_description,
-        "image_link": artist.image_link,
-        "past_shows": past_shows,
-        "upcoming_shows": upcoming_shows,
-        "past_shows_count": past_shows_count,
-        "upcoming_shows_count": upcoming_shows_count,
-    }
+    data = format_artist_venue(artist, past_shows, upcoming_shows)
 
     return render_template("pages/show_artist.html", artist=data)
 
